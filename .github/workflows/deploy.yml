@@ -79,11 +79,16 @@ jobs:
           npm run build:single
           cp dist-single/index.html dist/standalone.html
 
-      # enablement turns Pages on and sets its source to Actions on the first
-      # run, so no manual repository-settings step is needed.
+      # ONE-TIME SETUP, required before the first successful deploy:
+      #   Settings -> Pages -> Build and deployment -> Source: "GitHub Actions"
+      #
+      # This cannot be automated. The workflow's GITHUB_TOKEN is allowed to
+      # deploy to Pages but not to create the Pages site — attempting it with
+      # `enablement: true` fails with "Resource not accessible by integration",
+      # because creating the site needs administration rights the token does
+      # not carry. Until that switch is flipped, this step is where the run
+      # stops; every job before it still runs, so the build stays verified.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:

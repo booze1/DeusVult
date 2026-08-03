@@ -54,6 +54,17 @@ publish to GitHub Pages:
 
 **https://booze1.github.io/DeusVult/**
 
+### One-time setup (required before the first deploy)
+
+**Settings → Pages → Build and deployment → Source: "GitHub Actions"**
+
+This step cannot be automated. A workflow's `GITHUB_TOKEN` may *deploy* to
+Pages but may not *create* the Pages site — doing so needs administration
+rights the token does not carry, and `configure-pages` with `enablement: true`
+fails with `Resource not accessible by integration`. Until the switch is
+flipped, runs stop at that step; everything before it still executes, so a
+build is never published unverified.
+
 A red build does not deploy, so the playtest URL is never broken — the previous
 good build stays live. The workflow also publishes `standalone.html`, the
 single-file build, at `/DeusVult/standalone.html`.
