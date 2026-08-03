@@ -1,0 +1,28 @@
+{
+  "name": "deusvult",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Modern combined-arms hex tactics on the First Island Chain.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "sim": "tsx tools/headless.ts",
+    "smoke": "node tools/browser-smoke.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "playwright": "^1.49.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "pixi.js": "^8.6.6"
+  }
+}

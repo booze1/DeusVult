@@ -1,0 +1,680 @@
+/*
+ * Tactical UI.
+ *
+ * Built mobile-first: the board owns the screen, panels are overlays that
+ * collapse, and every interactive target is at least 44px so it survives a
+ * thumb. Safe-area insets are respected so the action bar never sits under a
+ * home indicator.
+ */
+
+:root {
+  --bg: #0b0f14;
+  --panel: rgba(18, 24, 32, 0.94);
+  --panel-solid: #121820;
+  --line: #243040;
+  --line-strong: #35455a;
+  --text: #e6edf3;
+  --text-dim: #8b98a8;
+  --friendly: #4a9eff;
+  --hostile: #ff8c42;
+  --contact: #ffd166;
+  --objective: #7ee787;
+  --threat: #d7263d;
+  --sensor: #35c9a5;
+  --good: #5dd39e;
+  --warn: #ffd166;
+  --bad: #ef476f;
+
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  overscroll-behavior: none;
+}
+
+#board {
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+}
+
+#board canvas {
+  display: block;
+}
+
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+#hud > * {
+  pointer-events: auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* Top bar                                                             */
+/* ------------------------------------------------------------------ */
+
+.topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: calc(8px + var(--safe-top)) 12px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(11, 15, 20, 0.95), rgba(11, 15, 20, 0));
+}
+
+.topbar__mission {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+
+.topbar__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.topbar__spacer {
+  flex: 1;
+}
+
+.turn-chip {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--panel);
+  white-space: nowrap;
+}
+
+.turn-chip--enemy {
+  border-color: var(--hostile);
+  color: var(--hostile);
+}
+
+/* ------------------------------------------------------------------ */
+/* Buttons                                                             */
+/* ------------------------------------------------------------------ */
+
+button {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 10px 14px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--friendly);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--friendly);
+  border-color: var(--friendly);
+  color: #04121f;
+  font-weight: 650;
+}
+
+button.primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+button.endturn {
+  border-color: var(--line-strong);
+  background: rgba(74, 158, 255, 0.12);
+  font-weight: 600;
+  margin-left: auto;
+}
+
+button.endturn:hover:not(:disabled) {
+  background: rgba(74, 158, 255, 0.22);
+}
+
+button.toggle--on {
+  border-color: var(--sensor);
+  color: var(--sensor);
+}
+
+button.icon {
+  padding: 8px 10px;
+  min-height: 40px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+/* ------------------------------------------------------------------ */
+/* Side panel: objectives and log                                      */
+/* ------------------------------------------------------------------ */
+
+.sidepanel {
+  position: absolute;
+  top: calc(58px + var(--safe-top));
+  right: 10px;
+  width: min(300px, 42vw);
+  max-height: 46vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  backdrop-filter: blur(8px);
+}
+
+.card__title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.objective {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  line-height: 1.4;
+  padding: 3px 0;
+}
+
+.objective__mark {
+  font-family: var(--mono);
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.objective--done {
+  color: var(--objective);
+}
+.objective--failed {
+  color: var(--bad);
+  text-decoration: line-through;
+}
+.objective--optional {
+  color: var(--text-dim);
+}
+
+.log {
+  overflow-y: auto;
+  max-height: 24vh;
+  font-size: 12px;
+  line-height: 1.45;
+  -webkit-overflow-scrolling: touch;
+}
+
+.log__entry {
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(36, 48, 64, 0.5);
+  color: var(--text-dim);
+}
+
+.log__entry--COMBAT {
+  color: var(--text);
+}
+.log__entry--LOSS {
+  color: var(--bad);
+}
+.log__entry--CONTACT {
+  color: var(--contact);
+}
+.log__entry--OBJECTIVE {
+  color: var(--objective);
+}
+
+.log__turn {
+  font-family: var(--mono);
+  font-size: 10px;
+  opacity: 0.6;
+  margin-right: 6px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Unit panel and action bar                                           */
+/* ------------------------------------------------------------------ */
+
+.bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 10px calc(10px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(0deg, rgba(11, 15, 20, 0.96), rgba(11, 15, 20, 0));
+}
+
+.unitcard {
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: none;
+}
+
+.unitcard--visible {
+  display: block;
+}
+
+.unitcard__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.unitcard__callsign {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.unitcard__callsign--friendly {
+  color: var(--friendly);
+}
+.unitcard__callsign--hostile {
+  color: var(--hostile);
+}
+
+.unitcard__designation {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.unitcard__vet {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--warn);
+}
+
+.statgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 6px 10px;
+  margin-top: 8px;
+}
+
+.stat {
+  font-size: 11px;
+}
+
+.stat__label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.stat__value {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.meter {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  margin-top: 3px;
+}
+
+.meter__fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 200ms ease;
+}
+
+.actionbar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.actionbar::-webkit-scrollbar {
+  display: none;
+}
+
+.actionbar button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.action--hostile {
+  border-color: var(--hostile);
+  color: var(--hostile);
+}
+
+.hint {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-style: italic;
+  min-height: 16px;
+  padding: 0 2px;
+}
+
+.hint--warn {
+  color: var(--warn);
+  font-style: normal;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fire preview                                                        */
+/* ------------------------------------------------------------------ */
+
+.firepreview {
+  background: var(--panel);
+  border: 1px solid var(--hostile);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.firepreview__head {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hostile);
+  margin-bottom: 6px;
+}
+
+.firepreview__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.firepreview__value {
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+/* Damage distribution: the number the player actually reasons about. */
+.dist {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 34px;
+  margin: 8px 0 4px;
+}
+
+.dist__bar {
+  flex: 1;
+  background: var(--hostile);
+  opacity: 0.45;
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+}
+
+.dist__bar--likely {
+  opacity: 1;
+}
+
+.dist__axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+/* ------------------------------------------------------------------ */
+/* Overlay toggles                                                     */
+/* ------------------------------------------------------------------ */
+
+.overlaybar {
+  position: absolute;
+  left: 10px;
+  top: calc(58px + var(--safe-top));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Modal screens                                                       */
+/* ------------------------------------------------------------------ */
+
+.modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 10, 14, 0.93);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(6px);
+  overflow-y: auto;
+}
+
+.modal__inner {
+  max-width: 620px;
+  width: 100%;
+  background: var(--panel-solid);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 22px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal__eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--friendly);
+}
+
+.modal__title {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 4px 0 14px;
+  letter-spacing: -0.01em;
+}
+
+.modal__body p {
+  font-size: 14px;
+  line-height: 1.62;
+  color: #c9d4e0;
+  margin: 0 0 12px;
+}
+
+.modal__section {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 18px 0 8px;
+}
+
+.intel-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.intel-list li {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 5px 0 5px 16px;
+  position: relative;
+  color: #c9d4e0;
+}
+
+.intel-list li::before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  color: var(--friendly);
+}
+
+.modal__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
+.rating {
+  font-size: 30px;
+  letter-spacing: 6px;
+  color: var(--warn);
+  margin: 6px 0 14px;
+}
+
+.aar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.aar-stat {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.aar-stat__label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.aar-stat__value {
+  font-family: var(--mono);
+  font-size: 20px;
+  margin-top: 3px;
+}
+
+.lesson {
+  border-left: 2px solid var(--friendly);
+  padding: 8px 0 8px 12px;
+  margin: 12px 0;
+}
+
+.lesson__title {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--friendly);
+  margin-bottom: 4px;
+}
+
+.lesson__body {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #c9d4e0;
+}
+
+.taskforce {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tf-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+.tf-row--lost {
+  border-color: var(--bad);
+  color: var(--text-dim);
+}
+
+.tf-row__callsign {
+  font-family: var(--mono);
+  font-weight: 650;
+  min-width: 96px;
+}
+
+.tf-row__spacer {
+  flex: 1;
+}
+
+/* ------------------------------------------------------------------ */
+/* Narrow screens                                                      */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .sidepanel {
+    width: 54vw;
+    max-height: 34vh;
+  }
+  .log {
+    max-height: 14vh;
+  }
+  .topbar__name {
+    font-size: 13px;
+  }
+  .modal__title {
+    font-size: 21px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
