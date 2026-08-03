@@ -18,6 +18,7 @@ import {
 } from '@core/campaign';
 import type { MissionDef } from '@core/mission';
 import { Hud } from '@ui/hud';
+import { BUILD_VERSION, buildStamp } from '../buildInfo';
 import { BattleScreen } from './battle';
 
 initContent();
@@ -68,7 +69,7 @@ function showTitle(): void {
   const hasProgress = campaign.history.length > 0;
 
   hud.showModal({
-    eyebrow: 'First Island Chain · 2031',
+    eyebrow: `First Island Chain · 2031 · build ${buildStamp()}`,
     title: 'DEUS VULT',
     body: [
       'A fictional escalation in the Western Pacific, fought with real forces and real equipment.',
@@ -193,8 +194,12 @@ async function startMission(mission: MissionDef): Promise<void> {
 
 function showPauseMenu(): void {
   hud.showModal({
+    eyebrow: `Build ${buildStamp()}`,
     title: 'Operation paused',
-    body: ['The battle is held. Nothing is lost while this screen is open.'],
+    body: [
+      'The battle is held. Nothing is lost while this screen is open.',
+      `Reporting a problem? Quote build ${BUILD_VERSION} so it can be traced to a commit.`,
+    ],
     buttons: [
       { label: 'Resume', primary: true, onSelect: () => hud.hideModal() },
       {

@@ -16,6 +16,10 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig({
   base: './',
   plugins: [viteSingleFile({ removeViteModuleLoader: true })],
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.GITHUB_SHA?.slice(0, 7) ?? 'dev'),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   resolve: {
     alias: {
       '@core': fileURLToPath(new URL('./src/core', import.meta.url)),

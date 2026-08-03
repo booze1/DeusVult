@@ -46,6 +46,27 @@ npm run dev        # http://localhost:5173
 | `npm run smoke` | Browser smoke test — drives the full designate-then-strike loop |
 | `npm run smoke:mobile` | Same, under iPhone emulation in both orientations |
 
+## Playtest builds
+
+Every push to `main` or a `claude/**` branch runs typecheck, the unit suite and
+a headless playthrough of all three missions; **only if all three pass** does it
+publish to GitHub Pages:
+
+**https://booze1.github.io/DeusVult/**
+
+A red build does not deploy, so the playtest URL is never broken — the previous
+good build stays live. The workflow also publishes `standalone.html`, the
+single-file build, at `/DeusVult/standalone.html`.
+
+Note that this URL is public, as is the repository.
+
+### Build provenance
+
+Every build stamps its commit SHA into the interface — visible on the title
+screen, in the top bar during a mission, and in the pause menu. **Quote it when
+reporting anything**, because "the missile button was greyed out" means
+different things before and after a fix. Local builds report `dev`.
+
 ## Playing on a phone
 
 The client is built mobile-first and is verified under iPhone emulation in

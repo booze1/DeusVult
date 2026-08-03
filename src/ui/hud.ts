@@ -7,6 +7,7 @@
  * interface is HTML, and each does what it is good at.
  */
 
+import { buildStamp } from '../buildInfo';
 import { binomialPmf } from '@core/rng';
 import { suppressionState } from '@core/combat';
 import { DETECTION_LABELS, type DetectionLevel } from '@core/types';
@@ -170,8 +171,12 @@ export class Hud {
 
   /* ---------------------------------------------------------------- */
 
+  /**
+   * The build stamp rides along with the operation name so that any
+   * screenshot a playtester sends identifies the build it came from.
+   */
   setMission(operation: string, name: string): void {
-    this.missionLabel.textContent = operation;
+    this.missionLabel.textContent = `${operation} · ${buildStamp()}`;
     this.nameLabel.textContent = name;
   }
 

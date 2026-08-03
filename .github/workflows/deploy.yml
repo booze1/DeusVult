@@ -1,0 +1,93 @@
+# Build, verify and publish the playable build to GitHub Pages.
+#
+# Deployment is gated on typecheck, tests and a headless mission run. The
+# playtest URL is the one artefact people actually use, so it must never be
+# broken — a red build simply does not deploy, and the previous good one stays
+# live.
+
+name: Deploy playtest build
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+  workflow_dispatch:
+
+# Allow the workflow to publish to Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race; cancel superseded runs but let an in-flight
+# deployment finish so Pages is not left half-updated.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Typecheck, test and simulate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      # A mission that no longer resolves is a broken game even when every
+      # unit test passes, so the campaign is played through headless.
+      - name: Headless mission run
+        run: npm run sim
+
+  deploy:
+    name: Build and deploy
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # GITHUB_SHA is read by vite.config.ts and stamped into the interface.
+      - name: Build
+        run: npm run build
+
+      # Also ship the single-file build, so a playtester can grab one HTML
+      # file and run it with no network at all.
+      - name: Build standalone single file
+        run: |
+          npm run build:single
+          cp dist-single/index.html dist/standalone.html
+
+      # enablement turns Pages on and sets its source to Actions on the first
+      # run, so no manual repository-settings step is needed.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
