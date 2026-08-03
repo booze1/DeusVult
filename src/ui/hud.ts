@@ -71,6 +71,7 @@ export interface HudCallbacks {
   readonly onEndTurn: () => void;
   readonly onToggleThreat: (on: boolean) => void;
   readonly onToggleSensors: (on: boolean) => void;
+  readonly onRecentre: () => void;
   readonly onMenu: () => void;
 }
 
@@ -98,6 +99,9 @@ export class Hud {
 
   private readonly threatButton = el('button', 'icon', 'THREAT');
   private readonly sensorButton = el('button', 'icon', 'SENSORS');
+  private readonly recentreButton = el('button', 'icon', 'CENTRE');
+  private readonly intelButton = el('button', 'icon', 'INTEL');
+  private readonly sidepanel = el('div', 'sidepanel');
   // Styled distinctly rather than as a second primary: when a Confirm fire
   // button is on screen, two blue buttons compete for the same glance and the
   // player presses the wrong one.
@@ -136,13 +140,25 @@ export class Hud {
       this.sensorButton.classList.toggle('toggle--on', this.sensorsOn);
       this.callbacks.onToggleSensors(this.sensorsOn);
     });
-    overlaybar.append(this.threatButton, this.sensorButton);
+    this.recentreButton.addEventListener('click', () => this.callbacks.onRecentre());
+
+    // On a phone the objectives and log cover half the board, so they collapse
+    // to a toggle. Opened by default only where there is room for them.
+    const roomForPanel = globalThis.innerWidth >= 820 && globalThis.innerHeight >= 560;
+    this.sidepanel.classList.toggle('sidepanel--hidden', !roomForPanel);
+    this.intelButton.classList.toggle('toggle--on', roomForPanel);
+    this.intelButton.addEventListener('click', () => {
+      const hidden = this.sidepanel.classList.toggle('sidepanel--hidden');
+      this.intelButton.classList.toggle('toggle--on', !hidden);
+    });
+
+    overlaybar.append(this.intelButton, this.threatButton, this.sensorButton, this.recentreButton);
 
     // Side panel
-    const sidepanel = el('div', 'sidepanel');
     this.objectivesCard.append(el('div', 'card__title', 'Objectives'), this.objectivesBody);
     this.logCard.append(el('div', 'card__title', 'Net traffic'), this.logBody);
-    sidepanel.append(this.objectivesCard, this.logCard);
+    this.sidepanel.append(this.objectivesCard, this.logCard);
+    const sidepanel = this.sidepanel;
 
     // Bottom
     const bottom = el('div', 'bottom');
@@ -436,7 +452,7 @@ function meterStat(
 }
 
 function detailRow(label: string, value: string): HTMLElement {
-  const node = el('div', 'stat');
+  const node = el('div', 'stat unitcard__detail');
   node.style.marginTop = '8px';
   node.append(el('div', 'stat__label', label));
   const text = el('div', undefined, value);

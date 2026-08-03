@@ -39,9 +39,49 @@ npm run dev        # http://localhost:5173
 | --- | --- |
 | `npm run dev` | Development server with hot reload |
 | `npm run build` | Typecheck and produce a production bundle |
+| `npm run build:single` | One self-contained `dist-single/index.html`, no external requests |
 | `npm test` | Full test suite (64 tests) |
 | `npm run typecheck` | Types only |
 | `npm run sim` | Headless mission runner / balance sweep |
+| `npm run smoke` | Browser smoke test — drives the full designate-then-strike loop |
+| `npm run smoke:mobile` | Same, under iPhone emulation in both orientations |
+
+## Playing on a phone
+
+The client is built mobile-first and is verified under iPhone emulation in
+portrait and landscape on every change (`npm run smoke:mobile`). **Landscape is
+the better orientation** — the board gets roughly 70% of the screen against 55%
+in portrait.
+
+Three ways to get it onto a device:
+
+1. **Over your local network** — best for iterating, since hot reload works:
+   ```bash
+   npm run dev -- --host       # prints a Network: http://192.168.x.x:5173 URL
+   ```
+   Open that URL on a phone on the same Wi-Fi.
+
+2. **A single file** — `npm run build:single` produces one ~610 kB
+   `dist-single/index.html` with all JavaScript, CSS and the icon inlined and
+   **zero network requests**. Host it anywhere static, or open it directly.
+
+3. **As a hosted page** — `node tools/make-artifact.mjs` converts that build
+   into a content-only fragment for hosts that supply their own document
+   skeleton.
+
+Touch handling covers tap, drag-to-pan and pinch-to-zoom. Renderer resolution
+is capped at 2× regardless of device pixel ratio: a 3× display triples fragment
+cost for a difference nobody can see on vector art, and drains the battery
+doing it. The WebGL backend is pinned explicitly rather than left to
+auto-detection, because WebGPU availability on iOS Safari is still version- and
+flag-dependent.
+
+### Playtest builds
+
+Production bundles ship no debug surface. Append `?probe=1` to expose a
+read-only hook (`window.__deusvult`) that reports unit positions and game
+state — which is how the automated UI tests avoid hard-coding pixel
+coordinates that rot whenever the camera changes.
 
 The headless runner plays complete missions with no renderer, which is what
 makes automated balance work possible:

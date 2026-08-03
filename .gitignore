@@ -16,3 +16,4 @@ npm-debug.log*
 
 # Smoke-test artefacts
 tools/screenshots/
+dist-single/

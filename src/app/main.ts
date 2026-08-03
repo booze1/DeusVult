@@ -36,6 +36,7 @@ const hud = new Hud(hudHost, {
   onEndTurn: () => battle?.endTurn(),
   onToggleThreat: (on) => battle?.setThreatOverlay(on),
   onToggleSensors: (on) => battle?.setSensorOverlay(on),
+  onRecentre: () => battle?.recentre(),
   onMenu: () => showPauseMenu(),
 });
 

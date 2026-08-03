@@ -12,7 +12,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "sim": "tsx tools/headless.ts",
-    "smoke": "node tools/browser-smoke.mjs"
+    "build:single": "tsc --noEmit && vite build --config vite.singlefile.config.ts",
+    "smoke": "node tools/browser-smoke.mjs",
+    "smoke:mobile": "node tools/mobile-smoke.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -20,6 +22,7 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
+    "vite-plugin-singlefile": "^2.3.3",
     "vitest": "^2.1.8"
   },
   "dependencies": {

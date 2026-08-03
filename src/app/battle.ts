@@ -46,6 +46,8 @@ export class BattleScreen {
   private showSensors = false;
   private busy = false;
 
+  private container: HTMLElement | null = null;
+  private resizeHandler: (() => void) | null = null;
   private pointerStart: { x: number; y: number } | null = null;
   private dragging = false;
   private lastPointer: { x: number; y: number } | null = null;
@@ -63,21 +65,21 @@ export class BattleScreen {
       background: PALETTE.background,
       resizeTo: container,
       antialias: true,
+      // Cap at 2x: a 3x iPhone display triples fragment cost for a difference
+      // nobody can see on vector art, and drains the battery doing it.
       resolution: Math.min(globalThis.devicePixelRatio || 1, 2),
       autoDensity: true,
+      // Pin the backend explicitly. WebGPU availability on iOS Safari is still
+      // version- and flag-dependent, and a silent fallback that fails is far
+      // worse than a backend we know works everywhere.
+      preference: 'webgl',
     });
     container.replaceChildren(this.app.canvas);
     this.app.stage.addChild(this.board.root);
 
-    // Reserve the HUD's top bar and the unit panel + action bar below.
-    this.board.fitTo(
-      this.session.state,
-      container.clientWidth || 800,
-      container.clientHeight || 600,
-      64,
-      190,
-    );
-
+    this.container = container;
+    this.recentre();
+    this.attachResize();
     this.attachInput();
     this.hud.setMission(this.session.mission.operation, this.session.mission.name);
     this.refresh();
@@ -92,7 +94,13 @@ export class BattleScreen {
    * exposes real marker positions instead. Stripped from production builds.
    */
   private exposeDevProbe(): void {
-    if (!import.meta.env.DEV) return;
+    // On by default in development; in a production build it has to be asked
+    // for with ?probe=1, so shipped bundles carry no debug surface unless a
+    // playtester deliberately opts in.
+    const requested =
+      typeof location !== 'undefined' &&
+      new URLSearchParams(location.search).has('probe');
+    if (!import.meta.env.DEV && !requested) return;
     (globalThis as unknown as Record<string, unknown>).__deusvult = {
       markers: () =>
         [...this.session.state.units.values()]
@@ -113,7 +121,49 @@ export class BattleScreen {
   }
 
   destroy(): void {
+    if (this.resizeHandler) {
+      globalThis.removeEventListener('resize', this.resizeHandler);
+      globalThis.removeEventListener('orientationchange', this.resizeHandler);
+      this.resizeHandler = null;
+    }
     this.app.destroy(true, { children: true });
+  }
+
+  /**
+   * Frame the battlefield for the current viewport.
+   *
+   * Insets and the minimum zoom are chosen from the viewport rather than
+   * fixed, because a phone in landscape has barely 200px of board between the
+   * top bar and the action bar, while a desktop has the whole map to spare.
+   */
+  recentre(): void {
+    const container = this.container;
+    if (!container) return;
+
+    const width = container.clientWidth || 800;
+    const height = container.clientHeight || 600;
+
+    const insetBottom = height >= 700 ? 200 : height >= 500 ? 170 : 140;
+    // Below this the hexes stop being tap targets; see FitOptions.minScale.
+    const minScale = width < 500 ? 0.62 : width < 900 ? 0.55 : 0;
+
+    this.board.fitTo(this.session.state, {
+      viewWidth: width,
+      viewHeight: height,
+      insetTop: 64,
+      insetBottom,
+      minScale,
+      focusOn: this.session.playerUnits().map((u) => u.pos),
+    });
+    this.draw();
+  }
+
+  private attachResize(): void {
+    // Rotating a phone changes everything about the framing, and iOS fires
+    // resize after the orientation change rather than with it.
+    this.resizeHandler = () => globalThis.setTimeout(() => this.recentre(), 120);
+    globalThis.addEventListener('resize', this.resizeHandler);
+    globalThis.addEventListener('orientationchange', this.resizeHandler);
   }
 
   /* ---------------------------------------------------------------- */

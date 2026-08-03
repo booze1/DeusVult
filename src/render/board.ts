@@ -34,6 +34,22 @@ import { drawUnitSymbol } from './symbols';
 
 export const HEX_SIZE = 38;
 
+export interface FitOptions {
+  readonly viewWidth: number;
+  readonly viewHeight: number;
+  /** Screen space reserved by the HUD's top bar. */
+  readonly insetTop?: number;
+  /** Screen space reserved by the unit panel and action bar. */
+  readonly insetBottom?: number;
+  /**
+   * Never zoom out past this, even if the map then overflows. Protects hex
+   * tap targets on small screens.
+   */
+  readonly minScale?: number;
+  /** Hexes to centre on when the map does not fit at `minScale`. */
+  readonly focusOn?: readonly Hex[];
+}
+
 export interface BoardOverlays {
   readonly move?: readonly Hex[];
   readonly fire?: readonly Hex[];
@@ -110,13 +126,16 @@ export class Board {
    * without them the bottom rank of hexes sits permanently under the action
    * bar, which is exactly where a defending player's units tend to be.
    */
-  fitTo(
-    state: GameState,
-    viewWidth: number,
-    viewHeight: number,
-    insetTop = 0,
-    insetBottom = 0,
-  ): void {
+  fitTo(state: GameState, options: FitOptions): void {
+    const {
+      viewWidth,
+      viewHeight,
+      insetTop = 0,
+      insetBottom = 0,
+      minScale = 1,
+      focusOn = [],
+    } = options;
+
     let minX = Infinity;
     let maxX = -Infinity;
     let minY = Infinity;
@@ -132,12 +151,32 @@ export class Board {
 
     const mapWidth = maxX - minX + HEX_SIZE * 3;
     const mapHeight = maxY - minY + HEX_SIZE * 3;
-
     const usableHeight = Math.max(120, viewHeight - insetTop - insetBottom);
-    const scale = Math.min(viewWidth / mapWidth, usableHeight / mapHeight, 1.2);
 
-    const centreX = (minX + maxX) / 2;
-    const centreY = (minY + maxY) / 2;
+    // On a phone, fitting the whole map produces hexes around twelve pixels
+    // across — legible in a screenshot and impossible to tap. Readability wins
+    // over seeing everything: clamp to a scale where a hex is still a target,
+    // and let the player pan.
+    const wholeMap = Math.min(viewWidth / mapWidth, usableHeight / mapHeight, 1.2);
+    const scale = Math.max(wholeMap, minScale);
+
+    // If the map no longer fits, centre on what the player commands rather
+    // than on the geometric middle of the island.
+    let centreX = (minX + maxX) / 2;
+    let centreY = (minY + maxY) / 2;
+
+    if (scale > wholeMap && focusOn.length > 0) {
+      let sumX = 0;
+      let sumY = 0;
+      for (const h of focusOn) {
+        const p = hexToPixel(h, this.layout);
+        sumX += p.x;
+        sumY += p.y;
+      }
+      centreX = sumX / focusOn.length;
+      centreY = sumY / focusOn.length;
+    }
+
     this.setCamera(
       viewWidth / 2 - centreX * scale,
       insetTop + usableHeight / 2 - centreY * scale,

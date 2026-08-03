@@ -196,6 +196,10 @@ button.icon {
   gap: 8px;
 }
 
+.sidepanel--hidden {
+  display: none;
+}
+
 .card {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -657,18 +661,86 @@ button.icon {
 /* ------------------------------------------------------------------ */
 
 @media (max-width: 640px) {
+  /* Opened by request only — see Hud.build. When it is open it gets real
+     room, because a half-width log is unreadable on a phone. */
   .sidepanel {
-    width: 54vw;
-    max-height: 34vh;
+    width: min(300px, 78vw);
+    max-height: 40vh;
   }
   .log {
-    max-height: 14vh;
+    max-height: 18vh;
   }
   .topbar__name {
     font-size: 13px;
   }
   .modal__title {
     font-size: 21px;
+  }
+  .modal__inner {
+    padding: 16px;
+  }
+}
+
+/*
+ * Short viewports — a phone held in landscape, which is the orientation this
+ * game actually wants. Vertical space is the scarce resource, so the HUD gets
+ * shallower rather than narrower.
+ */
+@media (max-height: 520px) {
+  .topbar {
+    padding: calc(4px + var(--safe-top)) 10px 4px;
+  }
+  .topbar__mission {
+    display: none;
+  }
+  .overlaybar {
+    top: calc(44px + var(--safe-top));
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-width: 42vw;
+  }
+  .bottom {
+    padding: 6px 8px calc(6px + var(--safe-bottom));
+    gap: 5px;
+  }
+  .unitcard {
+    padding: 6px 10px;
+  }
+  .statgrid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px 8px;
+    margin-top: 5px;
+  }
+  .hint {
+    display: none;
+  }
+  .dist {
+    height: 22px;
+  }
+  /* Sensor and weapon detail is the first thing to go: it is reference
+     material, and the board is not. */
+  .unitcard__detail {
+    display: none;
+  }
+  .unitcard__callsign {
+    font-size: 12.5px;
+  }
+  .unitcard__designation,
+  .unitcard__vet {
+    font-size: 10.5px;
+  }
+  .stat__value {
+    font-size: 11.5px;
+  }
+  .card__title {
+    margin-bottom: 5px;
+  }
+  button {
+    min-height: 38px;
+    padding: 7px 11px;
+  }
+  .sidepanel {
+    max-height: 52vh;
   }
 }
 
